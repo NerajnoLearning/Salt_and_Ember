@@ -73,7 +73,12 @@ const filteredFoods = computed(() => {
     </p>
 
     <div class="grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
-      <article v-for="food in filteredFoods" :key="food.id" class="group flex flex-col">
+      <RouterLink
+        v-for="food in filteredFoods"
+        :key="food.id"
+        :to="{ name: 'food-detail', params: { id: food.id } }"
+        class="group flex flex-col rounded-md focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
+      >
         <div class="overflow-hidden rounded-md">
           <img
             :src="`/images/${food.image}`"
@@ -101,7 +106,7 @@ const filteredFoods = computed(() => {
         <p class="mt-3 text-[11px] font-medium tracking-[0.18em] text-ember/70 uppercase">
           {{ food.tags.join(' · ') }}
         </p>
-      </article>
+      </RouterLink>
     </div>
   </main>
 </template>
