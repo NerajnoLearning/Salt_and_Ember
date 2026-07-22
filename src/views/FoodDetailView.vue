@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { z } from 'zod'
 import { foods, type Food } from '../food'
+import FoodCard from '../components/FoodCard.vue'
 
 // URL params arrive as strings; coerce and reject anything that isn't a positive integer.
 const idParamSchema = z.coerce.number().int().positive()
@@ -72,36 +73,7 @@ const pairedFoods = computed<Array<Food>>(() => {
         </h2>
 
         <div class="mt-8 grid grid-cols-1 gap-x-8 gap-y-10 sm:grid-cols-2 lg:grid-cols-3">
-          <RouterLink
-            v-for="paired in pairedFoods"
-            :key="paired.id"
-            :to="{ name: 'food-detail', params: { id: paired.id } }"
-            class="group flex flex-col rounded-md focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
-          >
-            <div class="overflow-hidden rounded-md">
-              <img
-                :src="`/images/${paired.image}`"
-                :alt="paired.name"
-                class="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-                loading="lazy"
-              />
-            </div>
-
-            <div class="mt-4 flex items-baseline gap-2">
-              <h3 class="font-display text-lg font-medium">{{ paired.name }}</h3>
-              <span
-                aria-hidden="true"
-                class="min-w-4 flex-1 border-b border-dotted border-parchment/50"
-              ></span>
-              <span class="font-medium text-ember tabular-nums">
-                {{ paired.price.toFixed(2) }}
-              </span>
-            </div>
-
-            <p class="mt-1 text-sm leading-relaxed text-parchment">
-              {{ paired.description }}
-            </p>
-          </RouterLink>
+          <FoodCard v-for="paired in pairedFoods" :key="paired.id" :food="paired" compact />
         </div>
       </section>
     </template>

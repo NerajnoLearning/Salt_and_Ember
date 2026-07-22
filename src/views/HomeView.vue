@@ -1,46 +1,61 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { z } from 'zod'
-import { foods, foodTags } from '../food'
-
-// Accepts only a single string value (arrays and null fall back to ''),
-// trimmed and capped so arbitrary URL input can't grow unbounded.
-const searchParamSchema = z
-  .string()
-  .trim()
-  .max(100)
-  .catch('')
+import { foods, foodTags, type FoodTag } from '../food'
+import { filterFoods } from '../lib/filterFoods'
+import { searchParamSchema, serializeTags, tagsParamSchema } from '../lib/searchParams'
+import FoodCard from '../components/FoodCard.vue'
 
 const route = useRoute()
 const router = useRouter()
 
 const searchQuery = ref(searchParamSchema.parse(route.query.search))
+const selectedTags = ref<Array<FoodTag>>(tagsParamSchema.parse(route.query.tags))
 
-// Persist the query in the URL (?search=...) so searches are shareable
+const hasActiveFilters = computed(
+  () => searchQuery.value.trim() !== '' || selectedTags.value.length > 0,
+)
+
+// Persist filters in the URL (?search=…&tags=…) so views are shareable
 // and survive refresh; replace avoids polluting history on every keystroke.
-watch(searchQuery, (value) => {
-  router.replace({ query: { ...route.query, search: value.trim() || undefined } })
+watch([searchQuery, selectedTags], () => {
+  router.replace({
+    query: {
+      ...route.query,
+      search: searchQuery.value.trim() || undefined,
+      tags: serializeTags(selectedTags.value),
+    },
+  })
 })
 
-// Back/forward navigation updates the input to match the URL.
+// Back/forward navigation updates the controls to match the URL.
 watch(
-  () => route.query.search,
-  (value) => {
-    const parsed = searchParamSchema.parse(value)
-    if (parsed !== searchQuery.value.trim()) searchQuery.value = parsed
+  () => [route.query.search, route.query.tags],
+  ([search, tags]) => {
+    const parsedSearch = searchParamSchema.parse(search)
+    if (parsedSearch !== searchQuery.value.trim()) searchQuery.value = parsedSearch
+
+    const parsedTags = tagsParamSchema.parse(tags)
+    if (serializeTags(parsedTags) !== serializeTags(selectedTags.value)) {
+      selectedTags.value = parsedTags
+    }
   },
 )
 
-const filteredFoods = computed(() => {
-  const query = searchQuery.value.trim().toLowerCase()
-  if (!query) return foods
-  return foods.filter(
-    (food) =>
-      food.name.toLowerCase().includes(query) ||
-      food.tags.some((tag) => tag.toLowerCase().includes(query)),
-  )
-})
+const filteredFoods = computed(() =>
+  filterFoods(foods, { search: searchQuery.value, tags: selectedTags.value }),
+)
+
+function toggleTag(tag: FoodTag) {
+  selectedTags.value = selectedTags.value.includes(tag)
+    ? selectedTags.value.filter((selected) => selected !== tag)
+    : [...selectedTags.value, tag]
+}
+
+function clearFilters() {
+  searchQuery.value = ''
+  selectedTags.value = []
+}
 </script>
 
 <template>
@@ -54,7 +69,7 @@ const filteredFoods = computed(() => {
       </h1>
     </div>
 
-    <div class="mx-auto mb-12 max-w-md">
+    <div class="mx-auto mb-6 max-w-md">
       <label for="menu-search" class="sr-only">Search the menu</label>
       <input
         id="menu-search"
@@ -63,72 +78,55 @@ const filteredFoods = computed(() => {
         placeholder="Search by name or tag…"
         class="w-full rounded-md border border-parchment/30 bg-transparent px-4 py-2.5 text-sm text-parchment placeholder:text-parchment/50 focus:border-ember focus:ring-1 focus:ring-ember focus:outline-none"
       />
-      <p v-if="searchQuery" class="mt-2 text-center text-xs text-parchment/60" role="status">
-        {{ filteredFoods.length }} {{ filteredFoods.length === 1 ? 'dish' : 'dishes' }} found
-      </p>
     </div>
 
-    <div v-if="filteredFoods.length === 0" class="text-center">
-      <p class="text-parchment/70">
-        No dishes match “{{ searchQuery }}”. Try one of our tags instead:
-      </p>
-
-      <div class="mt-5 flex flex-wrap justify-center gap-2">
+    <div class="mb-12">
+      <div class="flex flex-wrap justify-center gap-2" role="group" aria-label="Filter by tag">
         <button
           v-for="tag in foodTags"
           :key="tag"
           type="button"
-          class="rounded-full border border-parchment/30 px-3.5 py-1.5 text-xs font-medium tracking-wide text-parchment transition-colors hover:border-ember hover:text-ember focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
-          @click="searchQuery = tag"
+          :aria-pressed="selectedTags.includes(tag)"
+          class="rounded-full border px-3.5 py-1.5 text-xs font-medium tracking-wide transition-colors focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
+          :class="
+            selectedTags.includes(tag)
+              ? 'border-ember bg-ember text-white'
+              : 'border-parchment/30 text-parchment hover:border-ember hover:text-ember'
+          "
+          @click="toggleTag(tag)"
         >
           {{ tag }}
         </button>
       </div>
 
+      <p v-if="hasActiveFilters" class="mt-4 text-center text-xs text-parchment/60" role="status">
+        {{ filteredFoods.length }} {{ filteredFoods.length === 1 ? 'dish' : 'dishes' }} found —
+        <button
+          type="button"
+          class="font-medium text-ember underline underline-offset-2 hover:text-ember/80 focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
+          @click="clearFilters"
+        >
+          clear filters
+        </button>
+      </p>
+    </div>
+
+    <div v-if="filteredFoods.length === 0" class="text-center">
+      <p class="text-parchment/70">
+        No dishes match your filters. Try a different tag, or start over:
+      </p>
+
       <button
         type="button"
         class="mt-6 rounded-md border border-ember px-5 py-2 text-sm font-medium text-ember transition-colors hover:bg-ember hover:text-white focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
-        @click="searchQuery = ''"
+        @click="clearFilters"
       >
-        Clear search
+        Clear filters
       </button>
     </div>
 
     <div class="grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
-      <RouterLink
-        v-for="food in filteredFoods"
-        :key="food.id"
-        :to="{ name: 'food-detail', params: { id: food.id } }"
-        class="group flex flex-col rounded-md focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
-      >
-        <div class="overflow-hidden rounded-md">
-          <img
-            :src="`/images/${food.image}`"
-            :alt="food.name"
-            class="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03] motion-reduce:transition-none motion-reduce:group-hover:scale-100"
-            loading="lazy"
-          />
-        </div>
-
-        <div class="mt-5 flex items-baseline gap-2">
-          <h2 class="font-display text-xl font-medium">{{ food.name }}</h2>
-          <span
-            aria-hidden="true"
-            class="min-w-4 flex-1 border-b border-dotted border-parchment/50"
-          ></span>
-          <span class="text-lg font-medium text-ember tabular-nums">
-            {{ food.price.toFixed(2) }}
-          </span>
-        </div>
-
-        <p class="mt-2 flex-1 text-sm leading-relaxed text-parchment">
-          {{ food.description }}
-        </p>
-
-        <p class="mt-3 text-[11px] font-medium tracking-[0.18em] text-ember/70 uppercase">
-          {{ food.tags.join(' · ') }}
-        </p>
-      </RouterLink>
+      <FoodCard v-for="food in filteredFoods" :key="food.id" :food="food" />
     </div>
   </main>
 </template>
