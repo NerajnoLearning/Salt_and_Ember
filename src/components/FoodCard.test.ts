@@ -43,4 +43,16 @@ describe('FoodCard', () => {
     expect(image.attributes('src')).toBe('/images/ribeye.jpg')
     expect(image.attributes('alt')).toBe('Ember Ribeye')
   })
+
+  it('should render the dish name and price in the compact variant', () => {
+    const text = mountCard({ food, compact: true }).text()
+
+    expect(text).toContain('Ember Ribeye')
+    expect(text).toContain('42.50')
+  })
+
+  it('should omit the tag line in the compact variant', () => {
+    expect(mountCard({ food }).text()).toContain('Dinner · Spicy')
+    expect(mountCard({ food, compact: true }).text()).not.toContain('Dinner · Spicy')
+  })
 })
