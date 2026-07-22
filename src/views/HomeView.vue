@@ -2,7 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { z } from 'zod'
-import { foods } from '../food'
+import { foods, foodTags } from '../food'
 
 // Accepts only a single string value (arrays and null fall back to ''),
 // trimmed and capped so arbitrary URL input can't grow unbounded.
@@ -68,9 +68,31 @@ const filteredFoods = computed(() => {
       </p>
     </div>
 
-    <p v-if="filteredFoods.length === 0" class="text-center text-parchment/70">
-      No dishes match “{{ searchQuery }}”. Try a name like “burger” or a tag like “spicy”.
-    </p>
+    <div v-if="filteredFoods.length === 0" class="text-center">
+      <p class="text-parchment/70">
+        No dishes match “{{ searchQuery }}”. Try one of our tags instead:
+      </p>
+
+      <div class="mt-5 flex flex-wrap justify-center gap-2">
+        <button
+          v-for="tag in foodTags"
+          :key="tag"
+          type="button"
+          class="rounded-full border border-parchment/30 px-3.5 py-1.5 text-xs font-medium tracking-wide text-parchment transition-colors hover:border-ember hover:text-ember focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
+          @click="searchQuery = tag"
+        >
+          {{ tag }}
+        </button>
+      </div>
+
+      <button
+        type="button"
+        class="mt-6 rounded-md border border-ember px-5 py-2 text-sm font-medium text-ember transition-colors hover:bg-ember hover:text-white focus-visible:ring-2 focus-visible:ring-ember focus-visible:outline-none"
+        @click="searchQuery = ''"
+      >
+        Clear search
+      </button>
+    </div>
 
     <div class="grid grid-cols-1 gap-x-8 gap-y-14 sm:grid-cols-2 lg:grid-cols-3">
       <RouterLink
