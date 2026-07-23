@@ -25,6 +25,12 @@
             active-class="text-ember"
             >About</RouterLink
           >
+          <RouterLink
+            to="/admin"
+            class="text-parchment transition-colors hover:text-cream focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-ember"
+            active-class="text-ember"
+            >Admin</RouterLink
+          >
         </div>
       </nav>
     </header>

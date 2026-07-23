@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { foods, foodTags, type FoodTag } from '../food'
+import { foodTags, type FoodTag } from '../food'
+import { menu } from '../stores/menu'
 import { filterFoods } from '../lib/filterFoods'
 import { searchParamSchema, serializeTags, tagsParamSchema } from '../lib/searchParams'
 import FoodCard from '../components/FoodCard.vue'
@@ -43,7 +44,7 @@ watch(
 )
 
 const filteredFoods = computed(() =>
-  filterFoods(foods, { search: searchQuery.value, tags: selectedTags.value }),
+  filterFoods(menu.value, { search: searchQuery.value, tags: selectedTags.value }),
 )
 
 function toggleTag(tag: FoodTag) {

@@ -2,7 +2,8 @@
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
 import { z } from 'zod'
-import { foods, type Food } from '../food'
+import { type Food } from '../food'
+import { menu } from '../stores/menu'
 import FoodCard from '../components/FoodCard.vue'
 
 // URL params arrive as strings; coerce and reject anything that isn't a positive integer.
@@ -13,13 +14,13 @@ const route = useRoute()
 const food = computed<Food | undefined>(() => {
   const parsed = idParamSchema.safeParse(route.params.id)
   if (!parsed.success) return undefined
-  return foods.find((item) => item.id === parsed.data)
+  return menu.value.find((item) => item.id === parsed.data)
 })
 
 const pairedFoods = computed<Array<Food>>(() => {
   if (!food.value) return []
   return food.value.pairings
-    .map((id) => foods.find((item) => item.id === id))
+    .map((id) => menu.value.find((item) => item.id === id))
     .filter((item): item is Food => item !== undefined)
 })
 </script>
